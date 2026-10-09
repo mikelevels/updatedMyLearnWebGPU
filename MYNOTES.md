@@ -85,4 +85,11 @@ Transformation matrices: shader only, identical to MyLearnWebGPU Step054 (WGSL d
 
 CONFIRMED All three builds run (wgpu, Dawn, emscripten 6.0.12).
 
+Step055_cpp
+
+Projection matrices: identical to MyLearnWebGPU Step055 (GLM 0.9.9.8 copied, 3 matrices in the uniforms,
+perspective). No limit to raise (MyLearnWebGPU had to raise maxUniformBufferBindingSize to 256).
+
+CONFIRMED All three builds run (wgpu, Dawn, emscripten 6.0.12). SAME CAPABILITIES AS MyLearnWebGPU NOW.
+
 HERE

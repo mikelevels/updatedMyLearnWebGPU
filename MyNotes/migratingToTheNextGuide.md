@@ -208,3 +208,21 @@ The "browser keeps the old shader" trap does not exist here: `CMakeLists.txt` ha
 
 CONFIRMED Step054 runs on WGPU, DAWN and EMSCRIPTEN 6.0.12 (small spinning pyramid, seen from the side).
 
+## Step055: Projection matrices
+
+**Code: identical to MyLearnWebGPU Step055** (projection, view and model matrices built on the CPU with GLM, 224-byte uniform struct with the matrices first, model matrix re-uploaded every frame, same shader). GLM is the same 0.9.9.8 copy, header-only, and `CMakeLists.txt` gets the same two lines (project root on the include path, MSVC warning C4201 off). GLM compiles without warnings with Emscripten 6.0.12's newer clang too.
+
+| | MyLearnWebGPU | updatedMyLearnWebGPU |
+|---|---|---|
+| `maxUniformBufferBindingSize` | had to be raised from 64 to 256 bytes (wgpu-native would have refused the 224-byte struct) | nothing to do (default 65536 bytes) |
+
+---
+
+# Where the two projects stand now
+
+Both projects show the same thing on all three builds: the green pyramid orbiting the center of the screen with real perspective and correct depth. **They now have the same capabilities.**
+
+Over the six chapters, the NEW API only changed spellings (`getLimits` + `Status`, `OptionalBool`, `wgpu::Default` + labels). The biggest practical difference is the limits: MyLearnWebGPU had to raise or compute a limit in Step044, Step050, Step052 and Step055; updatedMyLearnWebGPU never had to, because it leaves them at their defaults.
+
+CONFIRMED Step055 runs on WGPU, DAWN and EMSCRIPTEN 6.0.12 (perspective pyramid).
+

@@ -66,6 +66,11 @@ add_executable(App
 
 target_link_libraries(App PRIVATE glfw webgpu glfw3webgpu)
 
+# Step055: GLM is a header-only library copied into the glm/ folder at the
+# root of the project (same copy as MyLearnWebGPU). Adding the project root
+# to the include path is what makes `#include <glm/glm.hpp>` work.
+target_include_directories(App PRIVATE .)
+
 # We add an option to enable different settings when developing the app than
 # when distributing it.
 option(DEV_MODE "Set up development helper settings" ON)
@@ -100,6 +105,10 @@ set_target_properties(App PROPERTIES
 # above is what turns them into errors.)
 if (MSVC)
 	target_compile_options(App PRIVATE /W4)
+	# Step055: GLM uses "nameless structs/unions", a common compiler extension
+	# that MSVC warns about at /W4 (C4201). Since warnings are errors, we turn
+	# this one off, like the guide does.
+	target_compile_options(App PRIVATE /wd4201)
 else()
 	target_compile_options(App PRIVATE -Wall -Wextra -pedantic)
 endif()
