@@ -56,4 +56,12 @@ No API difference. Limits stay at their defaults, so nothing to raise. See MyNot
 
 CONFIRMED All three builds run (wgpu, Dawn, emscripten 6.0.12).
 
+Step044_cpp
+
+Dynamic uniforms: two logos, two uniform blocks uniformStride (256) bytes apart, dynamic offsets in
+setBindGroup(). device.getLimits() now fills a wgpu::Limits and returns a Status. No limit had to be raised
+(MyLearnWebGPU had to raise maxDynamicUniformBuffersPerPipelineLayout and compute maxBufferSize).
+
+CONFIRMED All three builds run (wgpu, Dawn, emscripten 6.0.12).
+
 HERE

@@ -156,3 +156,18 @@ CONFIRMED WGPU (wgpu-native v24.0.3.1), DAWN (Dawn 7187) and EMSCRIPTEN 6.0.12 (
 
 CONFIRMED Step043 runs on WGPU, DAWN and EMSCRIPTEN 6.0.12 (logo tinted green on all three).
 
+## Step044: Dynamic uniforms
+
+**Same idea, same result:** two uniform blocks in one buffer, `uniformStride` (256 bytes here too) apart, and each draw picks its block with a dynamic offset in `setBindGroup()`.
+
+| | MyLearnWebGPU | updatedMyLearnWebGPU |
+|---|---|---|
+| Reading the device limits | `wgpu::SupportedLimits l; device.getLimits(&l);` then `l.limits.minUniformBufferOffsetAlignment` | `wgpu::Limits l = wgpu::Default;` and `device.getLimits(&l)` returns a `wgpu::Status` that we CHECK, then `l.minUniformBufferOffsetAlignment` |
+| `maxDynamicUniformBuffersPerPipelineLayout` | had to be raised to 1 (we asked for the minimum, 0) | nothing to do: the default is 8 |
+| `maxBufferSize` | had to be COMPUTED (the logo's 300 bytes only fit 288 by luck) | nothing to do: the default is 256 MB |
+
+>[!note]
+>This is the payoff of the Next guide's "leave limits at Default" rule: two of the three changes this chapter needed in MyLearnWebGPU simply do not exist here.
+
+CONFIRMED Step044 runs on WGPU, DAWN and EMSCRIPTEN 6.0.12 (two logos, the second one 70% see-through, stride 256 bytes).
+
