@@ -72,4 +72,11 @@ No limit to raise. NOTE: faces overlap in the WRONG order, expected (no depth bu
 
 CONFIRMED All three builds run (wgpu, Dawn, emscripten 6.0.12).
 
+Step052_cpp
+
+Depth buffer: same as MyLearnWebGPU Step052. NEW API: depthWriteEnabled is an OptionalBool
+(wgpu::OptionalBool::True). Texture size limits not needed (defaults). depthClearValue MUST still be set to 1.0.
+
+CONFIRMED All three builds run (wgpu, Dawn, emscripten 6.0.12). Faces in the RIGHT order.
+
 HERE

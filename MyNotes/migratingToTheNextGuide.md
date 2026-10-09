@@ -185,3 +185,18 @@ The vertex layout changes (`Float32x3` position, color at offset 3 floats, strid
 
 CONFIRMED Step050 runs on WGPU, DAWN and EMSCRIPTEN 6.0.12 (rotating pyramid, faces still in the wrong order: no depth buffer yet).
 
+## Step052: Depth buffer
+
+Same depth texture (`Depth24Plus`, 640 x 480), same view, same depth test (`Less`), same depth attachment (cleared to 1.0, stencil ops `Undefined` on all three, no `#ifdef`). The spelling changes:
+
+| | MyLearnWebGPU | updatedMyLearnWebGPU |
+|---|---|---|
+| Write the depth | `depthWriteEnabled = true;` | `depthWriteEnabled = wgpu::OptionalBool::True;` (it is an OptionalBool now: True / False / Undefined, `= true` does not compile) |
+| Descriptors | `wgpu::TextureDescriptor d;` | `wgpu::TextureDescriptor d = wgpu::Default;` plus a `label` (StringView) so errors name the texture |
+| Texture size limits | had to be set (`maxTextureDimension2D = 640` ...) | nothing to do (default 8192) |
+
+>[!IMPORTANT]
+>`wgpu::Default` does NOT set `depthClearValue` on the depth attachment: it would stay 0.0, which means "nearest", and every fragment would fail the `Less` test (nothing drawn). We set it to 1.0 explicitly, like before.
+
+CONFIRMED Step052 runs on WGPU, DAWN and EMSCRIPTEN 6.0.12 (faces now overlap in the right order).
+
