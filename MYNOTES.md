@@ -49,4 +49,11 @@ NOTE: Dawn prints "Device lost: reason 3 (...)" when the window closes. Expected
 
 CONFIRMED All three builds run (wgpu, Dawn, emscripten 6.0.12). Memory stays flat on both desktop builds.
 
+Step043_cpp
+
+More uniforms: same code as MyLearnWebGPU Step043 (color + time + gamma, 32 bytes, static_asserts).
+No API difference. Limits stay at their defaults, so nothing to raise. See MyNotes/migratingToTheNextGuide.md.
+
+CONFIRMED All three builds run (wgpu, Dawn, emscripten 6.0.12).
+
 HERE

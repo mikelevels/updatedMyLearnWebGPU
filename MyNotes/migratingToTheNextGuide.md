@@ -143,3 +143,16 @@ The WGSL shader is byte for byte the same. `loadGeometry`, the vertex layout, th
 Most differences are SPELLING (StringView, Limits, ShaderSourceWGSL, capabilities). The real behavior changes are: requests are asynchronous (callback + mode + processEvents), callbacks are given up front in descriptors, and "not used" vs "default" is now explicit. Three `#ifdef`s disappeared because all backends agree now.
 
 CONFIRMED WGPU (wgpu-native v24.0.3.1), DAWN (Dawn 7187) and EMSCRIPTEN 6.0.12 (emdawnwebgpu v20250517) all run the moving WebGPU logo.
+
+---
+
+# Chapter by chapter
+
+## Step043: More uniforms
+
+**Code: identical to MyLearnWebGPU.** The uniform struct (`color` first, then `time`, `gamma`, padding to 32 bytes), the two `static_assert`s and the shader tint are copied as they are. Uniforms, `writeBuffer` and `offsetof` did not change in the new API.
+
+**One thing we did NOT have to touch:** `maxUniformBufferBindingSize`. In MyLearnWebGPU it was set to 64 bytes (16 floats) and had to be raised later, at Step055, because wgpu-native enforces limits exactly. Here the limits stay at their defaults (65536 bytes), so the struct can grow without touching the limits.
+
+CONFIRMED Step043 runs on WGPU, DAWN and EMSCRIPTEN 6.0.12 (logo tinted green on all three).
+
