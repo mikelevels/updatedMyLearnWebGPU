@@ -171,3 +171,17 @@ CONFIRMED Step043 runs on WGPU, DAWN and EMSCRIPTEN 6.0.12 (logo tinted green on
 
 CONFIRMED Step044 runs on WGPU, DAWN and EMSCRIPTEN 6.0.12 (two logos, the second one 70% see-through, stride 256 bytes).
 
+## Step050: A simple example
+
+**Code: identical to MyLearnWebGPU,** including our two deviations from the guide:
+- `loadGeometry` treats lines with only spaces as blank (the guide's `pyramid.txt` ends with one);
+- the dynamic uniforms of Step044 are rolled back, like in the guide.
+
+The vertex layout changes (`Float32x3` position, color at offset 3 floats, stride 6 floats) and the rotation in the shader do not touch the API at all.
+
+| | MyLearnWebGPU | updatedMyLearnWebGPU |
+|---|---|---|
+| `maxVertexBufferArrayStride` | had to be raised from 5 to 6 floats | nothing to do (default 2048 bytes) |
+
+CONFIRMED Step050 runs on WGPU, DAWN and EMSCRIPTEN 6.0.12 (rotating pyramid, faces still in the wrong order: no depth buffer yet).
+

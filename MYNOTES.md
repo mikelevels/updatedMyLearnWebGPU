@@ -64,4 +64,12 @@ setBindGroup(). device.getLimits() now fills a wgpu::Limits and returns a Status
 
 CONFIRMED All three builds run (wgpu, Dawn, emscripten 6.0.12).
 
+Step050_cpp
+
+A simple example: same code as MyLearnWebGPU Step050 (pyramid.txt, loadGeometry `dimensions`, Float32x3,
+stride 6 floats, rotation in the shader, blank-line loader fix, dynamic uniforms rolled back).
+No limit to raise. NOTE: faces overlap in the WRONG order, expected (no depth buffer yet).
+
+CONFIRMED All three builds run (wgpu, Dawn, emscripten 6.0.12).
+
 HERE
