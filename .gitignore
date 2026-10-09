@@ -1,0 +1,5 @@
+# Build folders (cmake -B build-xxx) and the IDE's own folders.
+# NB: MyLearnWebGPU used "./build*/", which git does not understand.
+/build*/
+/out/
+/.vs/
