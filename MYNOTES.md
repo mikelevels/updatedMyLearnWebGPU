@@ -79,4 +79,10 @@ Depth buffer: same as MyLearnWebGPU Step052. NEW API: depthWriteEnabled is an Op
 
 CONFIRMED All three builds run (wgpu, Dawn, emscripten 6.0.12). Faces in the RIGHT order.
 
+Step054_cpp
+
+Transformation matrices: shader only, identical to MyLearnWebGPU Step054 (WGSL did not change).
+
+CONFIRMED All three builds run (wgpu, Dawn, emscripten 6.0.12).
+
 HERE

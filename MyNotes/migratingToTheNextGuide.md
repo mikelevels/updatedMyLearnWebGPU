@@ -200,3 +200,11 @@ Same depth texture (`Depth24Plus`, 640 x 480), same view, same depth test (`Less
 
 CONFIRMED Step052 runs on WGPU, DAWN and EMSCRIPTEN 6.0.12 (faces now overlap in the right order).
 
+## Step054: Transformation matrices
+
+**Shader only, and WGSL did not change between the two APIs:** the shader is byte for byte the one of MyLearnWebGPU Step054 (S, T, R1, R2, applied as `R2 * R1 * T * S`, rows wrapped in `transpose()`).
+
+The "browser keeps the old shader" trap does not exist here: `CMakeLists.txt` had the resource `LINK_DEPENDS` from the start (MyLearnWebGPU only got it at Step054). Checked: editing only `shader.wgsl` re-links `App.html`.
+
+CONFIRMED Step054 runs on WGPU, DAWN and EMSCRIPTEN 6.0.12 (small spinning pyramid, seen from the side).
+
