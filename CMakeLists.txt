@@ -3,7 +3,9 @@
 # It follows the "Next" table of contents of the guide:
 #   https://eliemichel.github.io/LearnWebGPU/next/basic-3d-rendering/shader-uniforms/a-first-uniform.html
 #   reference code: https://github.com/eliemichel/LearnWebGPU-Code/tree/step039-next
-cmake_minimum_required(VERSION 3.16...3.30)
+# 3.25 because we use the SYSTEM target property (3.25) and
+# COMPILE_WARNING_AS_ERROR (3.24). An older CMake would silently ignore them.
+cmake_minimum_required(VERSION 3.25...3.31)
 project(
 	LearnWebGPU
 	VERSION 0.1.0
@@ -14,18 +16,33 @@ project(
 # Versions
 # Emscripten is the LATEST: 6.0.12, in C:\Users\gonza\Dev\Lib\emsdk-latest
 # (see build-emscripten.bat).
-# Dawn and wgpu-native stay at the versions WebGPU-distribution (the webgpu/
-# folder, main @ 17dcd42) ships with, because those are the versions the
-# guide's "Next" chapters are written and tested against, and the webgpu.hpp
-# files inside webgpu/ were generated for exactly them:
-#   Dawn chromium/7187 (prebuilt webgpu_dawn.dll), wgpu-native v24.0.3.1,
-#   emdawnwebgpu v20250517.163311 (WebGPU for the browser, released by Dawn).
-# Moving Dawn/wgpu-native to their latest versions means building Dawn from
-# source (there is no newer prebuilt that Visual Studio 2022 can link) and
-# regenerating webgpu.hpp: a separate step, for later.
-# These are CACHE variables declared inside webgpu/. To try another version,
-# pass -DDAWN_VERSION=... (or WGPU_VERSION, EMDAWNWEBGPU_VERSION) to a FRESH
-# build folder: an existing build-* folder keeps the version it was made with.
+# Dawn is the LATEST too: chromium/8093, BUILT FROM SOURCE (there is no
+# prebuilt Dawn this recent that Visual Studio 2022 can link). See
+# build-dawn.bat. The webgpu.hpp in webgpu/dawn/include/webgpu/ was
+# regenerated for it (see regenerate-dawn-hpp.bat).
+# wgpu-native and emdawnwebgpu stay at the versions WebGPU-distribution (the
+# webgpu/ folder, main @ 17dcd42) ships with, and so do their webgpu.hpp:
+#   wgpu-native v24.0.3.1, emdawnwebgpu v20250517.163311.
+# These are CACHE variables also declared inside webgpu/. Declaring them HERE
+# first wins (set(... CACHE ...) never overwrites an existing entry). An
+# existing build-* folder keeps the values it was made with: use a fresh one.
+set(DAWN_VERSION "8093" CACHE STRING "Dawn revision, the N in chromium/N")
+if (WEBGPU_BACKEND STREQUAL "DAWN")
+	# Build Dawn from source (it is a LONG first build, several GB)
+	set(WEBGPU_BUILD_FROM_SOURCE ON CACHE BOOL "Build the WebGPU implementation from source")
+	# A DLL (webgpu_dawn.dll): the static library also contains Dawn's own C++
+	# wrapper code, which clashes with our webgpu.hpp at link time
+	# ("StringView::operator string_view already defined").
+	set(DAWN_BUILD_MONOLITHIC_LIBRARY "SHARED" CACHE STRING "SHARED, STATIC or OFF")
+	# Load vulkan-1.dll from System32. Without this, Dawn 8093 asks Windows to
+	# load "vulkan-1.dll" with flags that only accept a FULL path, gets
+	# "Windows Error: 87" (invalid parameter) and finds no GPU at all.
+	set(DAWN_FORCE_SYSTEM_COMPONENT_LOAD ON CACHE BOOL "Load system components from System32")
+	# Things we do not need, that only cost build time
+	set(DAWN_USE_GLFW OFF CACHE BOOL "Dawn's GLFW windowing utils")
+	set(DAWN_BUILD_PROTOBUF OFF CACHE BOOL "Build the protobuf dependencies")
+	set(TINT_BUILD_TESTS OFF CACHE BOOL "Build Tint unit tests")
+endif()
 
 # Catch a mistake that otherwise gives a confusing error
 string(TOUPPER "${WEBGPU_BACKEND}" APP_WEBGPU_BACKEND_U)
@@ -56,6 +73,18 @@ set_target_properties(webgpu PROPERTIES SYSTEM ON)
 
 add_executable(App
 	main.cpp
+	# The Application class, split by topic (see the map in Application.h)
+	Application.h
+	Application.cpp
+	ApplicationDevice.cpp
+	ApplicationPipeline.cpp
+	ApplicationResources.cpp
+	ApplicationFrame.cpp
+	# The hand-written matrices of Step054/Step055
+	Transforms.h
+	Transforms.cpp
+	# The ONE file that compiles the webgpu.hpp wrapper's function bodies
+	webgpu-implementation.cpp
 	# Add the ResourceManager files
 	ResourceManager.h
 	ResourceManager.cpp
@@ -75,7 +104,16 @@ target_include_directories(App PRIVATE .)
 # when distributing it.
 option(DEV_MODE "Set up development helper settings" ON)
 
-if(DEV_MODE)
+if(EMSCRIPTEN)
+    # In the browser, the resources folder is packed into App.data and mounted
+    # at /resources in the virtual file system (see --preload-file below), in
+    # BOTH modes. BUG FIX (bug review): before, the folder kept your absolute
+    # Windows path inside the browser, so DEV_MODE=OFF ("./resources") could
+    # not find the files, and your disk path was baked into the web page.
+    target_compile_definitions(App PRIVATE
+        RESOURCE_DIR="/resources"
+    )
+elseif(DEV_MODE)
     # In dev mode, we load resources from the source tree, so that when we
     # dynamically edit resources (like shaders), these are correctly
     # versionned.
@@ -92,6 +130,12 @@ endif()
 
 # Copies wgpu_native.dll or webgpu_dawn.dll next to App.exe (does nothing for the web)
 target_copy_webgpu_binaries(App)
+# BUG FIX: that copy only happens when App.exe is re-linked. When only Dawn's
+# DLL changed, App.exe was not re-linked and an OLD webgpu_dawn.dll stayed next
+# to it. LINK_DEPENDS re-links App (and so re-copies) when the DLL changes.
+if (TARGET webgpu_dawn)
+	set_property(TARGET App APPEND PROPERTY LINK_DEPENDS $<TARGET_FILE:webgpu_dawn>)
+endif()
 
 set_target_properties(App PROPERTIES
 	CXX_STANDARD 17
@@ -132,9 +176,9 @@ if (EMSCRIPTEN)
 	target_link_options(App PRIVATE
 		# emscripten_sleep() in requestAdapterSync/requestDeviceSync needs this
 		-sASYNCIFY
-		# A preloaded FOLDER keeps its absolute path inside the browser's virtual
-		# file system, so RESOURCE_DIR (DEV_MODE) still finds the files
-		--preload-file "${CMAKE_CURRENT_SOURCE_DIR}/resources"
+		# Pack the resources folder into App.data. "@/resources" is where it
+		# appears in the browser's virtual file system (RESOURCE_DIR above).
+		--preload-file "${CMAKE_CURRENT_SOURCE_DIR}/resources@/resources"
 	)
 	# Link again (and so re-package App.data) when ONLY a resource changed.
 	# Fixes the "no work to do" problem written down at Step043_cpp in MyLearnWebGPU.

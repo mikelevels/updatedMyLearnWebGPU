@@ -18,10 +18,8 @@ cmake -B build-wgpu -DWEBGPU_BACKEND=WGPU
 cmake --build build-wgpu
 .\build-wgpu\Debug\App.exe
 
-# Build using Dawn backend
-cmake -B build-dawn -DWEBGPU_BACKEND=DAWN
-cmake --build build-dawn
-.\build-dawn\Debug\App.exe
+# Build using Dawn backend (Dawn 8093 from source, see build-dawn.bat)
+.\build-dawn.bat run
 
 # Build using emscripten (then open the page, Ctrl+C then Y to stop the server)
 .\build-emscripten.bat run
@@ -91,5 +89,37 @@ Projection matrices: identical to MyLearnWebGPU Step055 (GLM 0.9.9.8 copied, 3 m
 perspective). No limit to raise (MyLearnWebGPU had to raise maxUniformBufferBindingSize to 256).
 
 CONFIRMED All three builds run (wgpu, Dawn, emscripten 6.0.12). SAME CAPABILITIES AS MyLearnWebGPU NOW.
+
+Dawn8093_and_bug_fixes
+
+Dawn is now chromium/8093 (the latest), BUILT FROM SOURCE. Use build-dawn.bat (the first build downloads GBs
+and takes a long time). webgpu/dawn/include/webgpu/webgpu.hpp was regenerated (regenerate-dawn-hpp.bat).
+Fixed on the way: a generator bug (_NULLABLE), a link clash (Dawn is now a DLL), "Couldn't load Vulkan
+Windows Error 87" (DAWN_FORCE_SYSTEM_COMPONENT_LOAD=ON) and an OLD dll left next to App.exe.
+
+IMPORTANT: The old "cmake -B build-dawn -DWEBGPU_BACKEND=DAWN" line from Step000 is replaced by build-dawn.bat.
+
+BUG REVIEW: 9 bugs confirmed and fixed (window could freeze after minimize/restore, browser resources with
+DEV_MODE=OFF, CMake minimum version, hand projection != glm::perspective, spin direction flipped, 4 false
+comments). Table in MyNotes/migratingToTheNextGuide.md.
+
+CONFIRMED All three builds run (wgpu, Dawn 8093, emscripten 6.0.12).
+
+Milestone1_refactor
+
+MILESTONE: read MyNotes/milestone1.md (everything so far: goals, both projects, versions, decisions,
+how the code is organized now, what comes next) and MyNotes/bugsExplained.md (all 26 bugs caught so far,
+bad vs good code, symptoms, how to catch them yourself).
+
+REFACTOR: no function is longer than 25 lines (the longest was 110). main.cpp only holds main() now.
+The Application class is split by topic: Application.cpp (big steps), ApplicationDevice.cpp,
+ApplicationPipeline.cpp, ApplicationResources.cpp, ApplicationFrame.cpp. The hand-written matrices are in
+Transforms.cpp, and WEBGPU_CPP_IMPLEMENTATION has its own file (webgpu-implementation.cpp).
+The map of which file holds what is at the top of Application.h.
+
+FIXED on the way: the shader file was read with a size measured by tellg(), which does not match what a
+Windows text-mode read returns (CRLF). It now reads until the end of the file.
+
+CONFIRMED All three builds run (wgpu, Dawn 8093, emscripten 6.0.12), minimize/restore still draws.
 
 HERE

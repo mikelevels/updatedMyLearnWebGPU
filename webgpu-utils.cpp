@@ -31,6 +31,21 @@ void sleepForMilliseconds(unsigned int milliseconds){
 #endif // __EMSCRIPTEN__
 }
 
+// REFACTOR (milestone): requestAdapterSync and requestDeviceSync used to have
+// the same waiting loop copied in each. It now lives here, once.
+// We wait until `requestEnded` becomes true (the callback sets it).
+// processEvents() lets the instance run the callbacks that are ready.
+// NB: We test once before the loop not to wait in case it is already ready
+// (wgpu-native even calls the callback inside the request function).
+static void waitUntilRequestEnded(WGPUInstance instance, const bool& requestEnded){
+	wgpuInstanceProcessEvents(instance);
+	while (!requestEnded) {
+		// Wait a little to avoid asking too often (the guide waits 200 ms)
+		sleepForMilliseconds(20);
+		wgpuInstanceProcessEvents(instance);
+	}
+}
+
 WGPUAdapter requestAdapterSync(WGPUInstance instance, WGPURequestAdapterOptions const * options){
 	// A simple structure holding the local information shared with the
 	// onAdapterRequestEnded callback.
@@ -68,16 +83,7 @@ WGPUAdapter requestAdapterSync(WGPUInstance instance, WGPURequestAdapterOptions 
 	// Call to the WebGPU request adapter procedure
 	wgpuInstanceRequestAdapter(instance, options, callbackInfo);
 
-	// We wait until userData.requestEnded gets true.
-	// processEvents() lets the instance run the callbacks that are ready.
-	// NB: We test once before the loop not to wait in case it is already ready
-	// (wgpu-native even calls the callback inside wgpuInstanceRequestAdapter).
-	wgpuInstanceProcessEvents(instance);
-	while (!userData.requestEnded) {
-		// Wait a little to avoid asking too often (the guide waits 200 ms)
-		sleepForMilliseconds(20);
-		wgpuInstanceProcessEvents(instance);
-	}
+	waitUntilRequestEnded(instance, userData.requestEnded);
 
 	return userData.adapter;
 }
@@ -109,11 +115,7 @@ WGPUDevice requestDeviceSync(WGPUInstance instance, WGPUAdapter adapter, WGPUDev
 
 	wgpuAdapterRequestDevice(adapter, descriptor, callbackInfo);
 
-	wgpuInstanceProcessEvents(instance);
-	while (!userData.requestEnded) {
-		sleepForMilliseconds(20);
-		wgpuInstanceProcessEvents(instance);
-	}
+	waitUntilRequestEnded(instance, userData.requestEnded);
 
 	return userData.device;
 }

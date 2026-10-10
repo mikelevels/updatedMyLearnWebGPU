@@ -226,3 +226,46 @@ Over the six chapters, the NEW API only changed spellings (`getLimits` + `Status
 
 CONFIRMED Step055 runs on WGPU, DAWN and EMSCRIPTEN 6.0.12 (perspective pyramid).
 
+---
+
+# Dawn 8093 (the latest) and the bug review
+
+## Dawn chromium/8093, built from source
+
+| | before | now |
+|---|---|---|
+| Dawn | 7187, prebuilt `webgpu_dawn.dll` | **8093** (latest, 2026-10-07), compiled with the app |
+| How to build | `cmake -B build-dawn -DWEBGPU_BACKEND=DAWN` | `build-dawn.bat` (Ninja + Visual Studio compiler; the first build downloads GBs and takes a long time) |
+| C++ wrapper | `webgpu.hpp` shipped with WebGPU-distribution | regenerated from Dawn 8093's `webgpu.h` (`regenerate-dawn-hpp.bat`) |
+
+There is no prebuilt Dawn this recent that Visual Studio 2022 can link, so it is built from source. Four things broke on the way, all fixed:
+
+1. **Generator bug.** The WebGPU-Cpp generator wrote `_NULLABLE WGPUBuffer createBuffer(...)`, which is not C++ (Dawn now marks that function `WGPU_NULLABLE`). `regenerate-dawn-hpp.bat` fixes it to `Buffer createBuffer(...)` after generating.
+2. **Link clash.** Dawn's STATIC library contains Dawn's own copy of the C++ wrapper code, which clashed with ours: `StringView::operator string_view already defined`. Dawn is now built as a DLL (`DAWN_BUILD_MONOLITHIC_LIBRARY=SHARED`).
+3. **"Couldn't load Vulkan ... Windows Error: 87".** Dawn asks Windows to load `vulkan-1.dll` with flags that only accept a FULL path, so the plain name fails with "invalid parameter" and no GPU is found. `DAWN_FORCE_SYSTEM_COMPONENT_LOAD=ON` makes Dawn load it from System32.
+4. **Old DLL next to App.exe.** The DLL is copied next to `App.exe` only when `App.exe` is re-linked, so after rebuilding only Dawn the OLD DLL stayed there. `CMakeLists.txt` now re-links `App` whenever `webgpu_dawn.dll` changes.
+
+>[!note]
+>Dawn 8093 prints the surface format as **27** (BGRA8Unorm). Dawn 7187 printed 23. This is the renumbering warned about in the Step039 comments: compare formats by NAME.
+
+>[!note]
+>The prebuilt Dawn 7187 printed "DXC dlls were built, but are not available". Dawn 8093 is built with Vulkan only, so that message is gone.
+
+## Bugs found by the review (and fixed)
+
+A review hunted for real bugs; each one was checked by a second reviewer who tried to prove it wrong. 9 survived, 5 were rejected. Most of them are ALSO in MyLearnWebGPU (same code).
+
+| # | Bug | Fix |
+|---|---|---|
+| 1 | After minimizing and restoring the window, the surface can report **Outdated/Lost**. We skipped the frame and never configured it again, so the window could stay frozen. | The surface settings are kept (`surfaceConfig`) and the surface is configured again on Outdated/Lost. Checked: minimize + restore keeps drawing. |
+| 2 | **Browser files only found with DEV_MODE=ON**, and your Windows disk path was baked into the web page. | `--preload-file ...resources@/resources` and `RESOURCE_DIR="/resources"` for the web, in both modes. |
+| 3 | `cmake_minimum_required(3.16)` but we use features from CMake 3.24/3.25 that an older CMake silently ignores. | Now 3.25. |
+| 4 | The hand-written projection (Option A, and `makePerspectiveProj` in the shader) was NOT the same matrix as `glm::perspective`: the GLM picture was 25% smaller. The guide has the same mismatch. | The hand matrix now scales x by `focalLength/ratio` and y by `focalLength`, with w = z: exactly `glm::perspective`. |
+| 5 | The hand-written R1 turns by MINUS the angle (it is transposed), `glm::rotate` by PLUS. The pyramid spun the other way than in Step054. | `glm::rotate(..., -angle1, ...)`, like the `-angle2` already used for R2. |
+| 6 | The comment said returning false "instead of exit(1)" cleans up. It does not: `main()` returns 1 without `Terminate()`. | Comment corrected. |
+| 7 | "we use 16 bytes" of uniform binding: it is 224. | Comment corrected. |
+| 8 | "the only limits we may forward": any supported value may be forwarded; these two are special because LOWER is better. | Comment corrected. |
+| 9 | Comments about what `wgpu::Default` fills in (depthSlice, depthClearValue, BindGroupLayoutEntry) were true on ONE backend only. | Comments now say what each wrapper does. |
+
+CONFIRMED WGPU (wgpu-native v24), DAWN (Dawn 8093 from source) and EMSCRIPTEN 6.0.12 run.
+
